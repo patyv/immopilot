@@ -1,2 +1,1 @@
-# immopilot
-Application web d’analyse DVF, simulation de marge et suivi d’opérations immobilières.
+# ImmoPilot\n\nApplication web autonome : analyse d’extraits DVF Etalab, simulation de marge avant fiscalité et suivi d’opérations.\n\nOuvrir index.html ou servir le dossier avec un serveur statique. Publication GitHub Pages : branche main, dossier racine.\n\nLes projets sont enregistrés localement dans le navigateur. Exporter une sauvegarde pour les transférer. Les imports DVF ne sont pas conservés au rechargement. Aucun identifiant ni donnée personnelle n’est intégré au code.\n\nSource des données à importer : https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres-geolocalisees — DGFiP / Etalab, Licence Ouverte 2.0.\n
