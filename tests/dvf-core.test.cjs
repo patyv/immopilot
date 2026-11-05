@@ -1,0 +1,15 @@
+const {parseCSV,analyzeSales}=require('../dvf-core.js'),assert=require('node:assert/strict');
+const home={id_mutation:'2025-a',date_mutation:'2025-03-01',numero_disposition:'1',nature_mutation:'Vente',valeur_fonciere:'200000',surface_reelle_bati:'50',type_local:'Appartement',nom_commune:'Poissy',code_commune:'78498',id_parcelle:'78498000AA0001'};
+assert.equal(analyzeSales([home,{...home}]).sales.length,1,'exact duplicates');
+const dep={...home,type_local:'Dépendance',surface_reelle_bati:'0',lot1_numero:'20'};
+assert.equal(analyzeSales([home,dep]).sales[0].sqm,4000,'single home with annex');
+assert.equal(analyzeSales([home,{...home,lot1_numero:'2'}]).sales.length,0,'two distinct homes excluded');
+assert.equal(analyzeSales([home,{...dep,id_parcelle:'other'}]).sales.length,0,'multi parcel excluded');
+assert.equal(analyzeSales([home,{...dep,valeur_fonciere:'300000'}]).sales.length,0,'inconsistent price excluded');
+assert.equal(analyzeSales([{...home,valeur_fonciere:'Infinity'}]).sales.length,0,'invalid numeric value');
+assert.equal(analyzeSales([{...home,nature_mutation:'Echange'}]).sales.length,0,'non sales');
+assert.equal(analyzeSales([{...home,surface_reelle_bati:'0'}]).sales.length,0,'no area');
+const fields=Object.keys(home);let csv='\uFEFF'+fields.join(';')+'\r\n'+fields.map(k=>k==='nom_commune'?'"Poissy; centre"':home[k]).join(';')+'\r\n';assert.equal(parseCSV(csv)[0].nom_commune,'Poissy; centre');
+assert.throws(()=>parseCSV('id_mutation,x\na,b'));
+assert.throws(()=>parseCSV(fields.join(',')+'\n"unclosed'));
+console.log('PASS: CSV validation, duplicate removal, mutation grouping, annexes and complex-sale exclusions.');
