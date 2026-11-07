@@ -42,3 +42,4 @@ function analyzeSales(rows){
 }
 function prepareSales(rows){return analyzeSales(rows).sales}
 if(typeof module!=='undefined')module.exports={parseCSV,analyzeSales,prepareSales};
+

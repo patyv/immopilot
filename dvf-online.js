@@ -3,7 +3,7 @@ const DVF_API='https://dvf-api.data.gouv.fr';
 const GEO_API='https://geo.api.gouv.fr';
 let communeSearch=null,dataRequest=null,communes=[],dataTicket=0;
 const dvfCache=new Map();
-function clearMarket(){sales=[];$('#salescount').textContent='0';$('#city').value='';$('#fromdate').value='';$('#todate').value='';$('#sourceinfo').textContent='';$('#markettitle').textContent='Ventes à comparer';renderSales()}
+function clearMarket(){if(typeof resetReference==='function')resetReference(false);sales=[];$('#salescount').textContent='0';$('#city').value='';$('#fromdate').value='';$('#todate').value='';$('#sourceinfo').textContent='';$('#markettitle').textContent='Ventes à comparer';renderSales()}
 function onlineBusy(busy){$('#loadsales').disabled=busy;$('#quickpoissy').disabled=busy;$('#canceldata').classList.toggle('hidden',!busy)}
 async function findCommunes(event){
   event.preventDefault();const query=$('#communequery').value.trim();if(query.length<2)return;
@@ -91,3 +91,4 @@ $('#csv').onchange=async event=>{
   }catch(error){if(ticket===dataTicket)$('#status').textContent=error.message}
   event.target.value='';
 };
+

@@ -13,3 +13,4 @@ const fields=Object.keys(home);let csv='\uFEFF'+fields.join(';')+'\r\n'+fields.m
 assert.throws(()=>parseCSV('id_mutation,x\na,b'));
 assert.throws(()=>parseCSV(fields.join(',')+'\n"unclosed'));
 console.log('PASS: CSV validation, duplicate removal, mutation grouping, annexes and complex-sale exclusions.');
+
