@@ -6,13 +6,47 @@ function dealPercent(value){
   if(value<goal&&Number(value.toFixed(2))>=goal)digits=6;
   return value.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:digits})+' %';
 }
+function dealComparableRows(){
+  const area=Number($('#deal-surface').value)||0;
+  if(!sales.length||area<=0)return [];
+  const options={...currentComparisonOptions(),area,tolerance:Number($('#deal-tolerance').value),type:$('#deal-type').value};
+  return ImmoCore.comparableSales(sales,options).filter(r=>!opt.reference?.mutation||r.id_mutation!==opt.reference.mutation);
+}
+function updateMarketGauge(){
+  const rows=dealComparableRows(),median=ImmoCore.quantile(rows.map(r=>r.sqm),.5),purchase=Number($('#deal-purchase').value),area=Number($('#deal-surface').value),price=purchase>0&&area>0?purchase/area:null;
+  const format=n=>n.toLocaleString('fr-FR',{maximumFractionDigits:0});
+  $('#gauge-price').textContent=price&&Number.isFinite(price)?format(price):'—';
+  const ready=median>0&&price>0&&Number.isFinite(price),badge=$('#gauge-badge');
+  $('#gauge-subject').hidden=!ready;$('#gauge-subject-label').hidden=!ready;
+  $('#gauge-middle').hidden=!(median>0);$('#gauge-median-label').hidden=!(median>0);
+  if(median>0)$('#gauge-median-value').textContent=format(median)+' €/m²';
+  if(ready){
+    const delta=(price/median-1)*100,rounded=Math.round(Math.abs(delta)),equal=rounded===0,position=Math.max(7,Math.min(93,(price/median-.5)*100));
+    const under=delta<0;
+    $('#gauge-gap').textContent=equal?'≈ 0 %':(under?'−':'+')+rounded+' %';
+    $('#gauge-gap-label').textContent=(equal?'au niveau de la médiane':under?'sous la médiane':'au-dessus de la médiane')+(rows.length<10?' · à confirmer':'');
+    badge.className='gauge-badge '+(rows.length<10?'caution':equal?'neutral':under?'under':'above');
+    $('#gauge-subject').style.left=position+'%';$('#gauge-subject-label').style.left=position+'%';
+    $('#gauge-subject-value').textContent=format(price)+' €/m²';
+    $('#gauge-labels').classList.toggle('gauge-close',Math.abs(position-50)<24);
+    $('#gauge-subject').style.background=under?'#08624e':'#b6443b';
+    $('#gauge-scope').textContent='Écart = (prix du bien au m² ÷ médiane des comparables − 1) × 100. '+(price/median<.57||price/median>1.43?'Le repère du bien est placé en bord de jauge car il dépasse son échelle. ':'')+'Cet écart ne correspond pas à la marge après frais, calculée séparément ci-dessous.';
+  }else{
+    badge.className='gauge-badge neutral';$('#gauge-gap').textContent='—';$('#gauge-gap-label').textContent=median>0?'prix du bien à renseigner':'médiane DVF indisponible';
+    $('#gauge-scope').textContent='L’écart au marché ne correspond pas à la marge après frais. La rentabilité estimée est calculée séparément ci-dessous.';
+  }
+  if(rows.length){
+    const towns=[...new Set(rows.map(r=>r.nom_commune))].slice(0,3).join(', '),dates=rows.map(r=>r.date_mutation).sort();
+    $('#gauge-source').textContent=`Médiane ${towns} · ${$('#deal-type').value.toLowerCase()} · ${rows.length.toLocaleString('fr-FR')} ventes DVF de surface proche${opt.reference?' · rayon '+Number($('#radius').value)+' m':''} · du ${dates[0]} au ${dates.at(-1)}. Calculée sur les ventes réalisées avec les filtres actifs, pas sur les annonces en cours.${rows.length<10?' Moins de 10 comparables : estimation fragile.':''}`;
+  }else $('#gauge-source').textContent='Chargez une commune puis renseignez la surface et le prix d’achat dans le formulaire ci-dessous. Sans comparables DVF, aucune médiane n’est inventée, même si un prix de revente manuel est saisi.';
+}
 function dealReference(){
   const mode=$('#deal-reference').value,area=Number($('#deal-surface').value)||0;
-  $('#deal-pricem2').readOnly=mode!=='manual';$('#deal-tolerance').disabled=mode==='manual';
+  $('#deal-pricem2').readOnly=mode!=='manual';$('#deal-tolerance').disabled=false;
   if(mode==='manual')return {price:Number($('#deal-pricem2').value)||null,count:0,manual:true,description:'Prix au m² saisi manuellement : aucune validation par les ventes DVF.'};
   if(!sales.length||area<=0)return {price:null,count:0,manual:false,description:!sales.length?'Chargez une commune pour calculer un prix de référence, ou choisissez une saisie manuelle.':'Indiquez la surface du bien pour sélectionner des comparables de même type et de surface proche.'};
-  const options={...currentComparisonOptions(),area,tolerance:Number($('#deal-tolerance').value),type:$('#deal-type').value};
-  const rows=ImmoCore.comparableSales(sales,options).filter(r=>!opt.reference?.mutation||r.id_mutation!==opt.reference.mutation);
+  const options={tolerance:Number($('#deal-tolerance').value)};
+  const rows=dealComparableRows();
   const prices=rows.map(r=>r.sqm),mean=prices.length?prices.reduce((sum,p)=>sum+p,0)/prices.length:null;
   const price=mode==='mean'?mean:ImmoCore.quantile(prices,.5),name=mode==='mean'?'Moyenne arithmétique des prix au m²':'Médiane des prix au m²';
   const locations=[...new Set(rows.map(r=>r.nom_commune))].slice(0,3).join(', ');
@@ -26,6 +60,7 @@ function resetDealOutput(message){
   $('#deal-breakdown').innerHTML='';$('#deal-save').disabled=true;$('#deal-simulate').disabled=true;
 }
 function updateProfitability(){
+  updateMarketGauge();
   const source=dealReference();dealState.source=source;dealState.priceM2=source.price;
   $('#deal-source').textContent=source.description;$('#deal-source').classList.toggle('deal-source-weak',source.manual||source.count<10);
   if(!source.manual)$('#deal-pricem2').value=source.price?Number(source.price.toFixed(2)):'';
@@ -67,3 +102,4 @@ $('#profitability').addEventListener('change',event=>{if(event.target.matches('s
 $('#deal-save').onclick=()=>saveAssessedDeal(false);$('#deal-simulate').onclick=()=>saveAssessedDeal(true);
 $('#deal-simulate').textContent='Enregistrer et ouvrir le simulateur';
 updateProfitability();
+
