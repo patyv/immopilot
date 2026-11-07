@@ -1,7 +1,7 @@
 /* Map, comparables, lot studies and private portable backups. */
 const opt={reference:null,map:null,markers:null,referenceLayer:null,filtered:[],fitKey:'',lots:[],pendingEnvelope:null,verifiedBackup:null};
 function resetReference(refresh=true){opt.reference=null;$('#addressquery').value='';$('#addressmatches').innerHTML='';$('#referenceinfo').textContent='Aucun point de référence : toutes les ventes filtrées de la commune sont comparées.';if(refresh)renderSales()}
-function setReference(row,label){const point=ImmoCore.coordinates(row);if(!point)return;opt.reference={...point,label:label||'Point choisi sur la carte'};$('#referenceinfo').textContent=`Référence : ${opt.reference.label} · ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}. Le rayon est limité à la commune chargée.`;renderSales()}
+function setReference(row,label){const point=ImmoCore.coordinates(row);if(!point)return;opt.reference={...point,mutation:row.id_mutation||null,label:label||'Point choisi sur la carte'};$('#referenceinfo').textContent=`Référence : ${opt.reference.label} · ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}. Le rayon est limité à la commune chargée.`;renderSales()}
 function currentComparisonOptions(){return {reference:opt.reference,radius:Number($('#radius').value),area:Number($('#targetarea').value),tolerance:Number($('#tolerance').value),city:$('#city').value.trim(),type:$('#type').value,min:$('#min').value,max:$('#max').value,from:$('#fromdate').value,to:$('#todate').value}}
 function addressOf(row){return [row.adresse_numero,row.adresse_suffixe,row.adresse_nom_voie,row.nom_commune].filter(Boolean).join(' ')}
 function advancedRenderSales(){
@@ -11,7 +11,7 @@ function advancedRenderSales(){
   const dates=rows.map(r=>r.date_mutation).sort();$('#period').textContent=n?`${dates[0]} → ${dates.at(-1)}`:'—';
   $('#tablecount').textContent=n?`${Math.min(200,n)} ventes affichées sur ${n.toLocaleString('fr-FR')} retenues. ${n<10?'Échantillon faible : médiane fragile.':''} ${opt.reference?'Tri par distance croissante.':'Tri par date décroissante.'} Fourchette observée (quartiles) : ${money(ImmoCore.quantile(values,.25))} à ${money(ImmoCore.quantile(values,.75))}/m².`:'Aucune vente ne correspond à ces critères. Élargissez le rayon, la période ou la tolérance de surface.';
   $('#rows').innerHTML=rows.slice(0,200).map(r=>`<tr><td>${esc(r.date_mutation)}</td><td>${esc(r.nom_commune)}<br><span class="sub">${esc([r.adresse_numero,r.adresse_suffixe,r.adresse_nom_voie].filter(Boolean).join(' '))}</span></td><td>${esc(r.type_local)}</td><td>${r.area} m²</td><td>${money(r.price)}</td><td>${money(r.sqm)}</td><td>${r.distance!==null?Math.round(r.distance)+' m<br>':''}${ImmoCore.coordinates(r)?`<button class="refbutton" data-reference="${esc(r.id_mutation)}">Référence</button>`:'<span class="sub">Sans coordonnées</span>'}</td></tr>`).join('')||'<tr><td colspan="7">Aucune vente à afficher avec ces critères.</td></tr>';
-  drawMap();
+  drawMap();if(typeof updateProfitability==='function')updateProfitability();
 }
 function initMap(){
   if(opt.map)return true;
@@ -139,3 +139,4 @@ function receiveTransfer(){
   try{opt.pendingEnvelope=ImmoBackup.fromFragment(fragment);$('#incominglabel').textContent='Lien de transfert reçu. Saisissez la phrase secrète sur cet appareil.';$('#restorestatus').textContent='La copie attend votre vérification.'}catch(error){$('#restorestatus').textContent=error.message}
 }
 window.addEventListener('hashchange',receiveTransfer);receiveTransfer();
+

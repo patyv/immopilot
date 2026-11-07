@@ -74,3 +74,21 @@ node --test tests/optimization.test.cjs
 ```
 
 Tests : coordonnées invalides, haversine, filtres combinés, quartiles, marges par lots et seuil de revente, migration des anciennes sauvegardes, conservation des études, chiffrement/déchiffrement, mauvais mot de passe, altération et métadonnées de chiffrement invalides. Une recette dans le navigateur vérifie la carte sur Poissy, les filtres locaux, l’enregistrement d’une étude à deux lots et sa restauration par lien.
+
+
+
+## Version 4 — objectif de marge et plafond d’achat
+
+La carte **Cette opération atteint-elle votre objectif ?**, dans Marché DVF, évalue un prix d’achat saisi. DVF ne fournit pas d’annonces en cours : il ne s’agit pas d’une liste de biens actuellement disponibles à l’achat.
+
+1. Le repère au m² est la moyenne arithmétique des prix au m² des ventes comparables, ou leur médiane au choix. Type et surface proche sont imposés à partir du bien étudié ; les filtres de dates, les bornes de surface et le rayon déjà choisis restent applicables. La vente choisie comme référence est exclue pour éviter une comparaison avec elle-même. Sans point précis, le repère porte sur la commune chargée.
+2. La revente estimée vaut surface habitable × prix de référence au m² × (1 − décote de prudence). Une saisie manuelle du prix au m² reste possible et est identifiée comme non vérifiée par les comparables.
+3. Le coût total additionne achat, frais d’acquisition proportionnels, agence à l’achat en supplément, travaux, aléas sur travaux, intérêts sur capital constant, charges de portage, autres frais fixes et frais de revente proportionnels.
+4. Marge sur coût total = (revente estimée − coût total) / coût total × 100. Ce pourcentage n’est pas annualisé et reste avant fiscalité. Le taux de 8 % de frais d’acquisition est une hypothèse modifiable, sans calcul automatique de régime fiscal ou de frais notariés.
+5. L’objectif est initialisé à 10 %, librement modifiable. Le seuil est comparé au résultat non arrondi. Un signal vert nécessite l’objectif atteint et au moins 10 comparables DVF ; un scénario manuel ou un échantillon plus faible reste à confirmer.
+6. Le plafond d’achat hors frais pour un objectif t est `(revente / (1 + t) − coûts indépendants du prix d’achat) / (1 + taux de frais d’acquisition)`. Il est affiché à l’euro inférieur. Les frais fixes, les travaux et le financement restent constants dans ce calcul. Si aucun prix positif ne permet l’objectif, le plafond est déclaré incompatible.
+7. L’opération peut être enregistrée avec ses hypothèses et ouverte dans le simulateur existant. Les honoraires supplémentaires d’achat sont alors inclus une seule fois dans ses autres frais, avec une note explicative. Les sauvegardes chiffrées incluent cette étude.
+
+Les postes à zéro ne sont pas provisionnés. La comparaison par prix au m² ne corrige pas automatiquement l’état du logement, l’étage, le DPE ou les annexes ; il s’agit d’une estimation sous hypothèses, pas d’une rentabilité garantie.
+
+Tests supplémentaires : distinction entre décote de marché et marge après frais, seuil exact et juste sous 10 %, frais d’acquisition et frais d’agence comptés une seule fois, coût d’emprunt et travaux, cohérence avec le simulateur et plafond d’achat vérifié à un euro près.

@@ -53,6 +53,17 @@
     });
     return {version:2,createdAt:String(data.createdAt||''),projects};
   }
-  const api={coordinates,distanceMeters,comparableSales,quantile,operation,validateBackup,validateStudy};
+  function assessDeal(input){
+    const keys=['purchase','surface','work','fees','other','reserve','loan','rate','months','holding','agency','acqAgency','priceM2','haircut','goal'];
+    const v={};for(const k of keys){v[k]=Number(input[k]??0);if(!Number.isFinite(v[k])||v[k]<0||v[k]>1e12)throw Error('Renseignez des montants et taux positifs et finis.');}
+    if(v.surface<=0||v.purchase<=0||v.priceM2<=0)throw Error('Renseignez le prix d’achat, la surface et un prix de référence au m² positifs.');
+    if(v.agency>=100||v.haircut>=100||v.goal>1000||v.fees>100||v.rate>100||v.reserve>1000)throw Error('Vérifiez les taux : revente et décote doivent rester inférieurs à 100 %.');
+    const resale=v.priceM2*v.surface*(1-v.haircut/100),values={...v,other:v.other+v.acqAgency,resale};
+    const r=operation(values,[],false),fixedCosts=r.cost-v.purchase*(1+v.fees/100);
+    const ceiling=(resale/(1+v.goal/100)-fixedCosts)/(1+v.fees/100);
+    return {...r,values,acquisition:v.purchase*v.fees/100+v.acqAgency,workReserve:r.works*v.reserve/100,holdingTotal:v.holding*v.months,selling:resale*v.agency/100,maxPurchase:ceiling>=0?ceiling:null,target:v.goal,meetsTarget:r.margin+1e-9>=v.goal,gap:r.profit-r.cost*v.goal/100};
+  }
+  const api={coordinates,distanceMeters,comparableSales,quantile,operation,validateBackup,validateStudy,assessDeal};
   root.ImmoCore=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
+
